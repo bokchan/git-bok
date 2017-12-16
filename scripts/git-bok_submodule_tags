@@ -1,0 +1,75 @@
+#!/bin/bash
+
+# Fetch and print the current and latest tag of a project's submodules
+
+# print the help
+usage()
+{
+    cat <<EOT
+Usage: $0 [OPTIONS]
+
+       git_sub_module_tags [options]
+
+Options:
+
+-u     Update outdated submodules
+-h
+       show this help message and exit
+EOT
+}
+
+UPDATE_SUBMODULES=0
+
+# parse cmd args
+while getopts ':hu' opt; do
+  case $opt in
+    u) UPDATE_SUBMODULES=1
+      ;;
+    h) usage # process option h
+       exit 0
+      ;;
+  esac
+done
+shift $((OPTIND -1))
+
+# get the current status of the submodules
+SUBMODULES=`git submodule status | sed -re 's/^[ +]?[0-9a-z]+ //g'`;
+SUBMOD_NAME=
+
+RED=$'\e[31m'
+GRN=$'\e[32m'
+END=$'\e[0m'
+
+# print header
+printf '%41s\n' | tr ' ' -
+printf "\e[1m%-20s%-15s%-15s\e[0m\n" "Module" "Current" "Newest"
+printf '%41s\n' | tr ' ' -
+
+# get the latest tag for each submodule
+git submodule foreach "git fetch -t" > /dev/null 2>&1
+
+# then print the current and latest tag for each module
+#
+for submod_info in ${SUBMODULES[@]}
+do
+    if [[ $submod_info =~ ^submodules ]]; then
+        cd $submod_info
+        SUBMOD_NAME=`echo $submod_info | cut -f 2 -d \/ `
+    else
+        CURR_TAG=`echo $submod_info | sed -r 's/\(([v0-9.]+)\)/\1/g'`
+        LATEST_TAG=`git tag | grep -Pe '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -rV | head -1`
+        TAGS=($CURR_TAG $LATEST_TAG)
+        readarray -t TAGS_SORTED < <(printf '%s\n' "${TAGS[@]}" | sort)
+        if [[ $CURR_TAG == $LATEST_TAG ]]; then
+            printf "${GRN}"
+        elif [[ ${TAGS_SORTED[1]} == $LATEST_TAG ]]; then
+            printf "${RED}"
+        fi
+        printf "%-20s%-15s%-15s${END}\n" $SUBMOD_NAME $CURR_TAG $LATEST_TAG
+
+        if [[ ${UPDATE_SUBMODULES} = "1" ]]; then
+            git checkout $LATEST_TAG
+        fi
+        cd - > /dev/null
+    fi
+done
