@@ -1,0 +1,129 @@
+#!/bin/bash
+#
+# Create a diff the remote and local head, and wrap it in a collapsible comment
+#
+# usage:
+#       git_diff_patch_cmd | | xclip -selection c # use xclip to preserve new
+#                                                   lines in the diff
+#       git_diff_patch_cmd > <some-file>
+#       git_diff_patch_cmd -c [PR number]
+#
+# [PR number] is the numeric id of the pull request on github.com
+# Not that 'git-hub' and 'xclip' are required to use the commenting feature '-c'
+#
+# The default origin is 'fork', but can also be defined with environment
+# variable 'GIT_DEFAULT_ORIGIN'.
+#
+
+# print the help
+usage()
+{
+    cat <<EOT
+Usage: $0 [OPTIONS]
+
+       git_diff_patch_cmd | <your-shell-copy-tool> (e.g pbcopy)
+       git_diff_patch_cmd > <some-file>
+       git_diff_patch_cmd -c [PR number]
+
+[PR number] is the numeric id of the pull request on github.com
+Not that 'git-hub' and 'xclip' are required when using the -c option
+
+Options:
+
+-c id  The numeric id of the PR on github
+       adds the diff to an existing issue (requires 'git-hub' and 'xclip')
+-p     Push changes to remote
+-P     Force push changes to remote
+-h
+       show this help message and exit
+EOT
+}
+
+# check if a command exists and exit with error if it doesn't
+check_command_exists()
+{
+  if ! type "$1" &> /dev/null
+  then
+    echo "required cli tool '$1' doesn't exist"
+    exit 1
+  fi
+}
+
+COMMENT_ISSUE=
+PUSH_REMOTE=0
+FORCE_PUSH=
+
+# parse cmd args
+while getopts :c:Pph opt; do
+  case "$opt" in
+    c)
+       COMMENT_ISSUE="$OPTARG"
+       ;;
+    p)
+       PUSH_REMOTE=1
+       ;;
+    P)
+       PUSH_REMOTE=1
+       FORCE_PUSH="-f"
+       ;;
+    h) # process option h
+      ;;
+    *)
+      usage ; exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND -1))
+
+# get the branch
+BRANCH_NAME=`git branch | sed -n '/\* /s///p'`
+
+# set the origin for the remote url if the env var is specified
+GIT_ORIGIN=$GIT_DEFAULT_ORIGIN
+if [ -z "$GIT_ORIGIN" ]
+then
+    GIT_ORIGIN=fork
+fi
+
+# get the hash for the local and remote HEAD
+HEAD_HASH_LOCAL=`git log --pretty=format:'%h' -n 1 ${BRANCH_NAME}`
+HEAD_HASH_REMOTE=`git log --pretty=format:'%h' -n 1 $GIT_ORIGIN/${BRANCH_NAME}`
+
+# create the collapsible diff
+create_diff()
+{
+    cat << EOF
+Previous head was ${HEAD_HASH_LOCAL}, new **HEAD** at ${HEAD_HASH_REMOTE}.
+
+<details>
+<summary>Diff between heads are:</summary>
+
+\`\`\`diff
+
+`git diff -M --patch-with-stat ${HEAD_HASH_REMOTE} ${HEAD_HASH_LOCAL}`
+
+\`\`\`
+</details>
+EOF
+}
+
+if [ "$PUSH_REMOTE" = "1" ]
+then
+  git push $FORCE_PUSH "$GIT_ORIGIN" "$BRANCH_NAME"
+fi
+
+# use git-hub to add comment to issue/pr
+if [ ! -z $COMMENT_ISSUE ]
+then
+    check_command_exists xclip
+    check_command_exists git-hub
+
+    # copy the diff to the clipboard
+    create_diff | xclip -selection c
+    # invoke the 'git-hub' command to add a comment
+    # paste the diff directly into the editor
+    git hub pull comment $COMMENT_ISSUE
+else
+    create_diff
+fi
