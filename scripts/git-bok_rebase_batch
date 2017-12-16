@@ -1,0 +1,74 @@
+#!/bin/bash
+# rebase one or more branches on a base branch
+# and push
+
+# Check if current directory is a git repository
+if [ ! -d ./.git ]
+then
+  echo "Not a git repository"
+  exit 1
+fi
+
+PUSH_ORIGIN=false
+FORCE_PUSH=
+
+while getopts ':fph' opt; do
+  case $opt in
+    f)
+      FORCE_PUSH=-f
+      ;;
+    p) # process option p
+      PUSH_ORIGIN=true
+      ;;
+    h) # process option h
+      ;&
+    *)
+      echo "Usage: git_rebase_batch [OPTIONS] BASE_BRANCH [REBASE_BRANCHES]"
+      echo ""
+      echo "  -p  push rebased branch to origin"
+      echo "  -f  force push rebased branch to origin"
+      echo "  -h  display help message"
+      exit 0
+      ;;
+  esac
+  shift $((OPTIND -1))
+done
+
+# Check that at least the branch on which to rebase in passed as argument
+if [[ $# < 1 ]];
+then
+  echo "At least base branch must be specified"
+  exit 1
+fi
+
+
+# Set the branch to rebase on as first cli argument
+BASE_BRANCH="$1"
+
+# Create an array for branches to rebase
+declare -a REBASE_BRANCHES
+
+# Set the branches to rebase to the current branch, if no branches has been
+# specified in the cmd args
+# Otherse set branches to rebase to the slice of cli arguments args[1:$].
+if [ $# -eq 1  ]
+then
+  BRANCH=$(echo `git rev-parse --abbrev-ref HEAD`)
+  REBASE_BRANCHES=( "${BRANCH[@]}" )
+else
+  REBASE_BRANCHES=( ${@:2} )
+fi
+
+echo "Rebasing '${REBASE_BRANCHES[@]}' on '$BASE_BRANCH'"
+
+# Rebase each branch on the specified base branch
+# If submodules are dirty after the rebase, git submodule update is performed to
+# check out
+for branch in ${REBASE_BRANCHES[@]}
+do
+  git rebase $BASE_BRANCH $branch
+  git submodule update
+  if $PUSH_ORIGIN; then
+    git push $FORCE_PUSH origin $branch
+  fi
+done
