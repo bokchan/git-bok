@@ -28,6 +28,9 @@ while getopts ':hu' opt; do
     h) usage # process option h
        exit 0
       ;;
+    *) usage # process option h
+       exit 1
+      ;;
   esac
 done
 shift $((OPTIND -1))

@@ -67,6 +67,7 @@ while getopts :c:Pph opt; do
        FORCE_PUSH="-f"
        ;;
     h) # process option h
+      usage ; exit 0
       ;;
     *)
       usage ; exit 1
