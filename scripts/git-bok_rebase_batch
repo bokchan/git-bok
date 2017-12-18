@@ -9,63 +9,89 @@ then
   exit 1
 fi
 
+usage()
+{
+    cat <<EOT
+Usage: git_rebase_batch [OPTIONS] -b BASE_BRANCH [REBASE_BRANCHES]
+
+  -b  branch to rebase on
+  -i  interactively accept each rebase
+  -p  push rebased branch to origin
+  -P  force push rebased branch to origin
+  -h  display help message
+EOT
+}
+
 PUSH_ORIGIN=false
 FORCE_PUSH=
+BASE_BRANCH=
+INTERACTIVE=false
 
-while getopts ':fph' opt; do
+while getopts ':b:ipPh' opt; do
   case $opt in
-    f)
+    b)
+      BASE_BRANCH="$OPTARG"
+      ;;
+    i)
+      INTERACTIVE=true
+      ;;
+    P)
+      PUSH_ORIGIN=true
       FORCE_PUSH=-f
       ;;
     p) # process option p
       PUSH_ORIGIN=true
       ;;
-    h) # process option h
-      ;&
-    *)
-      echo "Usage: git_rebase_batch [OPTIONS] BASE_BRANCH [REBASE_BRANCHES]"
-      echo ""
-      echo "  -p  push rebased branch to origin"
-      echo "  -f  force push rebased branch to origin"
-      echo "  -h  display help message"
+    h)  # process option h
+      usage
       exit 0
       ;;
+    \?)
+      usage
+      exit 1
+      ;;
   esac
-  shift $((OPTIND -1))
 done
 
-# Check that at least the branch on which to rebase in passed as argument
-if [[ $# < 1 ]];
-then
-  echo "At least base branch must be specified"
-  exit 1
-fi
-
+shift $((OPTIND -1))
 
 # Set the branch to rebase on as first cli argument
-BASE_BRANCH="$1"
+if [[ -z "$BASE_BRANCH" ]]
+then
+  echo "Branch to rebase on must be specified with '-b' option"
+  exit 1
+fi
 
 # Create an array for branches to rebase
 declare -a REBASE_BRANCHES
 
 # Set the branches to rebase to the current branch, if no branches has been
 # specified in the cmd args
-# Otherse set branches to rebase to the slice of cli arguments args[1:$].
-if [ $# -eq 1  ]
+# Otherwise set branches to rebase to the positional cli arguments
+if [ $# -eq 0 ]
 then
   BRANCH=$(echo `git rev-parse --abbrev-ref HEAD`)
   REBASE_BRANCHES=( "${BRANCH[@]}" )
 else
-  REBASE_BRANCHES=( ${@:2} )
+  REBASE_BRANCHES=( ${@} )
 fi
 
-echo "Rebasing '${REBASE_BRANCHES[@]}' on '$BASE_BRANCH'"
+TMP=${REBASE_BRANCHES[@]}
+echo "Rebasing branches '${TMP// /, }' on '$BASE_BRANCH'"
 
-# Rebase each branch on the specified base branch
+# Rebase each branch on the specified base branch.
 # If submodules are dirty after the rebase, git submodule update is performed to
 # check out
 for branch in ${REBASE_BRANCHES[@]}
 do
+  if $INTERACTIVE; then
+    read -p "Rebase '$BASE_BRANCH' on '$branch' [Y/n]: " yesno
+    INPUT=${yesno:y}
+    if [[ $INPUT =~ (n|N) ]]
+    then
+      continue
+    fi
+  fi
   git rebase $BASE_BRANCH $branch
   git submodule update
   if $PUSH_ORIGIN; then
