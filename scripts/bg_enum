@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Enumerate commits on a BRANCH
+
+# print the help
+usage()
+{
+  cat <<EOT
+  Enumerate commits on a branch
+
+  Usage $0 [ARGS]
+
+    $0 20         # the last 20 commits enumerated on the current branch
+
+    $0 myfix 15   # the last 15 commits enumerated on the branch 'myfix',
+                       # NB: branch name must precede number of commits
+EOT
+
+}
+
+# default number of commits to show
+NUM_ENTRIES=10
+BRANCH=
+
+
+while getopts :h opt; do
+  case "$opt" in
+    h) # process option h
+      usage ; exit 0
+      ;;
+    *)
+      usage ; exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND -1))
+
+if [ $# -gt 0 ]
+then
+  if [[ $1 =~ [0-9]+ ]]
+  then
+    NUM_ENTRIES=$1
+  else
+    BRANCH=$1
+    if [[ ! -z $2 && $2 =~ [0-9]+ ]]
+    then
+      NUM_ENTRIES=$2
+    fi
+  fi
+fi
+
+# print the log
+git log --color=always --oneline --decorate $BRANCH  -$NUM_ENTRIES | \
+  nl --number-format=ln -w 4 "-s: "
