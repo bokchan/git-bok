@@ -55,10 +55,7 @@ git submodule foreach "git fetch -t" > /dev/null 2>&1
 #
 for submod_info in ${SUBMODULES[@]}
 do
-    if [[ $submod_info =~ ^submodules ]]; then
-        cd $submod_info
-        SUBMOD_NAME=`echo $submod_info | cut -f 2 -d \/ `
-    else
+    if [[ $submod_info =~ ^\( ]]; then
         CURR_TAG=`echo $submod_info | sed -r 's/\(([v0-9.]+)\)/\1/g'`
         LATEST_TAG=`git tag | grep -Pe '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -rV | head -1`
         TAGS=($CURR_TAG $LATEST_TAG)
@@ -73,6 +70,9 @@ do
         if [[ ${UPDATE_SUBMODULES} = "1" ]]; then
             git checkout $LATEST_TAG
         fi
-        cd - > /dev/null
+       cd - > /dev/null
+    else
+        cd $submod_info
+        SUBMOD_NAME=$(basename "$submod_info")
     fi
 done
