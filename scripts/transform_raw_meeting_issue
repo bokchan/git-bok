@@ -1,0 +1,2 @@
+#!/bin/bash
+sed -re 's/^ +(.+?)\/(sociomantic.+)$/- \2 \1/g' $1 

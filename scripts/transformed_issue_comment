@@ -1,0 +1,91 @@
+#!/bin/bash
+
+# print the help
+usage()
+{
+    cat <<EOT
+Script to transform an inputfile and add the result as a comment on an issue
+
+Usage: $0 [OPTIONS]
+
+Options:
+
+-c     The numeric id of the issue on github
+-i     Name of a file containing the comment to add [input.txt]
+-r     Use a regex to transform the inputfile, uses sed with --regexp-extended option
+-t     Use a script to transform the inputfile
+-h
+       show this help message and exit
+EOT
+}
+
+# check if a command exists and exit with an error if it doesn't
+check_command_exists()
+{
+  if ! type "$1" &> /dev/null
+  then
+    echo "required cli tool '$1' doesn't exist"
+    exit 1
+  fi
+}
+
+# Auxiliary variables
+ISSUE_NUMBER=
+INPUT_FILE=input.txt
+MESSAGE=
+TRANSFORM=
+REGEX=
+
+# Validate command line arguments
+validate_args()
+{
+    if [[ ! -e $INPUT_FILE ]]; then
+        echo "Input file not found"
+    fi
+
+    if [[ -n $TRANSFORM && -n $REGEX ]]; then
+        echo "only regex [-r] or transform script [-t] can be specified"; exit 1;
+    fi
+}
+
+# Parse cmd args
+while getopts :c:i:t:r: opt; do
+  case "$opt" in
+    c)
+       ISSUE_NUMBER="$OPTARG"
+       ;;
+    i)
+       INPUT_FILE="$OPTARG"
+       ;;
+    t)
+       TRANSFORM="$OPTARG"
+       ;;
+    r)
+       REGEX="$OPTARG"
+       ;;
+    h)
+      usage ; exit 0
+      ;;
+    *)
+      usage ; exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND -1))
+
+validate_args
+
+if [[ -n "$REGEX" ]]; then
+    #sed -re 's/^ +(.+?)\/(sociomantic.+)$/- \2 \1/g' $INPUT_FILE | xclip -selection c
+    sed -re '$REGEX' $INPUT_FILE | xclip -selection c
+elif [[ -n $TRANSFORM ]]; then
+    "$TRANSFORM" "$INPUT_FILE" | xclip -selection c
+else
+    cat "$INPUT_FILE" | xclip -selection c
+fi
+
+if [[ -n "$ISSUE_NUMBER" ]]; then
+    check_command_exists git-hub
+    git hub issue comment "$ISSUE_NUMBER"
+fi
