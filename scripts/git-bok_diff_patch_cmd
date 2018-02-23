@@ -95,7 +95,7 @@ HEAD_HASH_REMOTE=`git log --pretty=format:'%h' -n 1 $GIT_ORIGIN/${BRANCH_NAME}`
 create_diff()
 {
     cat << EOF
-Previous head was ${HEAD_HASH_LOCAL}, new **HEAD** at ${HEAD_HASH_REMOTE}.
+Previous head was ${HEAD_HASH_REMOTE}, new **HEAD** at ${HEAD_HASH_LOCAL}.
 
 <details>
 <summary>Diff between heads are:</summary>
