@@ -31,7 +31,8 @@ Not that 'git-hub' and 'xclip' are required when using the -c option
 Options:
 
 -c id  The numeric id of the PR on github
-       adds the diff to an existing issue (requires 'git-hub' and 'xclip')
+       pushes changes to remote and adds the diff to an existing
+       issue (requires 'git-hub' and 'xclip')
 -p     Push changes to remote
 -P     Force push changes to remote
 -h
