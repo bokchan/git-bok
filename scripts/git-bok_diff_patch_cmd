@@ -58,6 +58,7 @@ while getopts :c:Pph opt; do
   case "$opt" in
     c)
        COMMENT_ISSUE="$OPTARG"
+       PUSH_REMOTE=1
        ;;
     p)
        PUSH_REMOTE=1
