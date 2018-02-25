@@ -1,0 +1,77 @@
+#!/bin/bash
+#
+# Print a diff against another branch for files changed in N commits
+
+
+# print the help
+usage()
+{
+    cat <<EOT
+Usage: $0 [OPTIONS] <branch> [n-commits]
+
+    $0 -r <remote> <branch> [n-commits]
+
+n-commits      Number of commits to diff, default 1
+branch         The target diff branch
+
+Options:
+
+-r     Use remote branch. Upstream and origin can be specified with shorthand
+       'u' or 'o' respectively. If the environment variable GIT_DEFAULT_ORIGIN
+       is set this will be used as origin otherwise the default name 'origin' is
+       used
+       Alternatively the full name of the remote can be specified.
+EOT
+}
+
+# print error, usage and exit with 1
+print_error()
+{
+    echo "$1"
+    echo ""
+    usage
+    exit 1
+}
+
+REMOTE=
+ORIGIN=origin
+# parse cli args
+while getopts r:h opt; do
+    case "$opt" in
+        r)
+            if [[ "$OPTARG" = 'u' ]]; then
+                REMOTE="upstream/"
+            elif [[ "$OPTARG" = 'o' ]]; then
+                REMOTE="${GIT_DEFAULT_ORIGIN:=$ORIGIN}/"
+            elif [[ -z "$OPTARG" ]]; then
+                REMOTE="$OPTARG"
+            else
+                print_error "-r flag must be 'u' or 'o'"
+            fi
+        ;;
+        h)
+            usage; exit 0
+        ;;
+        *)
+            usage ; exit 1
+        ;;
+    esac
+    shift $((OPTIND -1))
+done
+
+# check that diff branch arguments exists
+eval [[ $# -ge 1 ]] || print_error "Target diff branch missing"
+
+# get the branch to diff against
+DIFF_BRANCH=$REMOTE$1
+
+# get the number of commits
+NUM_COMMITS=$2
+NUM_COMMITS=${NUM_COMMITS:=1}
+
+# get the changed files for the N commits
+DIFF_FILES=$(git log --name-only -$NUM_COMMITS --graph  --oneline | \
+             grep -E  '^\|' |  cut -f 2 -d \| | sort -u | tr '\n' ' ')
+
+# print the diff for files changed in the N commits
+git diff $DIFF_BRANCH -- $DIFF_FILES
