@@ -33,6 +33,9 @@ Options:
 -c id  The numeric id of the PR on github
        pushes changes to remote and adds the diff to an existing
        issue (requires 'git-hub' and 'xclip')
+-t     Text to use as header for the comment. If the argument is a single word
+       that begins with '@' it is interpreted as the start of the github
+       username.
 -p     Push changes to remote
 -P     Force push changes to remote
 -h
@@ -50,16 +53,46 @@ check_command_exists()
   fi
 }
 
+COMMENT_HEADER=
 COMMENT_ISSUE=
 PUSH_REMOTE=0
 FORCE_PUSH=
 
+# array of github user-names. Read from the env var GITHUB_MEMBER_USERNAMES
+MY_GITHUB_MEMBER_USERNAMES=$GITHUB_MEMBER_USERNAMES
+
+# generate a header which tags github users
+#
+comment_header()
+{
+  arg=$1
+  arg_arr=(${arg//,/ })
+  github_users=()
+  for a in ${arg_arr[*]}; do
+    for t in ${MY_GITHUB_MEMBER_USERNAMES[*]}; do
+      if [[ $t =~ $a ]]; then
+        github_users+=("@$t")
+      fi
+    done
+  done
+
+  if [ -z $github_users ]; then
+    COMMENT_HEADER="$arg"
+  else
+    github_users=${github_users[*]}
+    COMMENT_HEADER="Updated with comments from ${github_users// /, }"
+  fi
+}
+
 # parse cmd args
-while getopts :c:Pph opt; do
+while getopts :c:t:Pph opt; do
   case "$opt" in
     c)
        COMMENT_ISSUE="$OPTARG"
        PUSH_REMOTE=1
+       ;;
+    t)
+       comment_header "$OPTARG"
        ;;
     p)
        PUSH_REMOTE=1
@@ -97,6 +130,8 @@ HEAD_HASH_REMOTE=`git log --pretty=format:'%h' -n 1 $GIT_ORIGIN/${BRANCH_NAME}`
 create_diff()
 {
     cat << EOF
+${COMMENT_HEADER}
+
 Previous head was ${HEAD_HASH_REMOTE}, new **HEAD** at ${HEAD_HASH_LOCAL}.
 
 <details>
