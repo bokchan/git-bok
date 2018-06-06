@@ -80,7 +80,7 @@ comment_header()
     COMMENT_HEADER="$arg"
   else
     github_users=${github_users[*]}
-    COMMENT_HEADER="Updated with comments from ${github_users// /, }"
+    COMMENT_HEADER="Updated based on comments by ${github_users// /, }"
   fi
 }
 
