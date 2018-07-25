@@ -35,7 +35,8 @@ Options:
        issue (requires 'git-hub' and 'xclip')
 -t     Text to use as header for the comment. If the argument is a single word
        that begins with '@' it is interpreted as the start of the github
-       username.
+       username. If the argument is 'master' or a semver version string the
+       header will be "Updated on $argument"
 -p     Push changes to remote
 -P     Force push changes to remote
 -h
@@ -76,7 +77,9 @@ comment_header()
     done
   done
 
-  if [ -z $github_users ]; then
+  if [[ "$arg" =~ master || "$arg" =~ ^v[0-9]+\.[x0-9]+\.[x0-9]+$ ]] ; then
+    COMMENT_HEADER="Rebased on $arg"
+  elif [ -z $github_users ]; then
     COMMENT_HEADER="$arg"
   else
     github_users=${github_users[*]}
