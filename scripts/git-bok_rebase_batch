@@ -79,6 +79,14 @@ fi
 TMP=${REBASE_BRANCHES[@]}
 echo "Rebasing branches '${TMP// /, }' on '$BASE_BRANCH'"
 
+# set the origin for the remote url if the env var is specified
+GIT_ORIGIN=$GIT_DEFAULT_ORIGIN
+if [ -z "$GIT_ORIGIN" ]
+then
+    GIT_ORIGIN=fork
+fi
+
+
 # Rebase each branch on the specified base branch.
 # If submodules are dirty after the rebase, git submodule update is performed to
 # check out
@@ -95,6 +103,6 @@ do
   git rebase $BASE_BRANCH $branch
   git submodule update
   if $PUSH_ORIGIN; then
-    git push $FORCE_PUSH origin $branch
+    git push $FORCE_PUSH $GIT_ORIGIN $branch
   fi
 done
