@@ -3,10 +3,10 @@
 # Create a diff the remote and local head, and wrap it in a collapsible comment
 #
 # usage:
-#       git_diff_patch_cmd | xclip -selection c # uses xclip to preserve new
+#       git_diff_patch_cmd | xclip -selection c # use xclip to preserve new
 #                                                   lines in the diff
 #       git_diff_patch_cmd > <some-file>
-#       git_diff_patch_cmd -c [PR number]
+#       git_diff_patch_cmd -c [PR number] [OPTIONS]
 #
 # [PR number] is the numeric id of the pull request on github.com
 # Note that 'git-hub' and 'xclip' are required to use the commenting feature '-c'
@@ -67,7 +67,6 @@ FORCE_PUSH=
 MY_GITHUB_MEMBER_USERNAMES=$GITHUB_MEMBER_USERNAMES
 
 # generate a header which tags github users
-#
 comment_header()
 {
   arg=$1
