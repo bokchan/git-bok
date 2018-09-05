@@ -3,17 +3,19 @@
 # Create a diff the remote and local head, and wrap it in a collapsible comment
 #
 # usage:
-#       git_diff_patch_cmd | | xclip -selection c # use xclip to preserve new
+#       git_diff_patch_cmd | xclip -selection c # uses xclip to preserve new
 #                                                   lines in the diff
 #       git_diff_patch_cmd > <some-file>
 #       git_diff_patch_cmd -c [PR number]
 #
 # [PR number] is the numeric id of the pull request on github.com
-# Not that 'git-hub' and 'xclip' are required to use the commenting feature '-c'
+# Note that 'git-hub' and 'xclip' are required to use the commenting feature '-c'
 #
 # The default origin is 'fork', but can also be defined with environment
 # variable 'GIT_DEFAULT_ORIGIN'.
 #
+# In addition the environment variable 'GITHUB_MEMBER_USERNAMES' can be used to
+# specify github usernames for people whom should be tagged in a comment.
 
 # print the help
 usage()
@@ -33,9 +35,11 @@ Options:
 -c id  The numeric id of the PR on github
        pushes changes to remote and adds the diff to an existing
        issue (requires 'git-hub' and 'xclip')
--t     Text to use as header for the comment. If the argument is a single word
-       that begins with '@' it is interpreted as the start of the github
-       username. If the argument is 'master' or a semver version string the
+-t     Text to use as header for the comment.
+       If the environment variable 'GITHUB_MEMBER_USERNAMES' is specified the
+       argument will be matched against the its value. If a match is found the
+       comment will read: 'Updated based on comments from @USERNAME'.
+       If the argument is 'master' or a semver version string the
        header will be "Updated: rebased on $argument"
 -p     Push changes to remote
 -P     Force push changes to remote
