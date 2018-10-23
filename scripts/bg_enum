@@ -52,4 +52,4 @@ fi
 
 # print the log
 git log --color=always --oneline --decorate $BRANCH  -$NUM_ENTRIES | \
-  nl --number-format=ln -w 4 "-s: "
+  nl -n ln -w 4 "-s: "
