@@ -9,7 +9,9 @@ Github scripts for everyday workflows
 Description
 ===========
 
-``git bok`` is a collection of scripts to help automate **github** workflows.
+The project is a collection of scripts to help automate **github** workflows.
+
+They are idiosyncratic with respect to the tasks I do in my daily work.
 
 Usage
 =====
@@ -25,22 +27,24 @@ pushing.
 The script allows you show the new changes, to the reviewers while keeping the commits clean.
 ::
 
-    git bok diff-commit -P -c 123
+    git-bok_diff_patch_cmd -P -c 123
 
 
 Installation
 ============
 
+There is no installer, so simply download the scripts, make them executable and add them to your **PATH**.
+
 Dependencies
 ------------
 
-* Git_ >= 1.7.7 (if you use Ubuntu_ you can easily get the latest Git version
-  using the `Git stable PPA`__)
+* ``git`` >= 1.7.7 (if you use **Ubuntu** you can easily get the latest Git version
+  using the `Git stable PPA`_)
 
-* xclip_
+* ``xclip``
 
-* git-hub_
+* `git-hub`_
 
 .. _Git: https://www.git-scm.com/
 .. _git-hub: https://github.com/sociomantic-tsunami/git-hub
-.. _Ubuntu: http://www.ubuntu.com/
+.. _Git stable PPA: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git
