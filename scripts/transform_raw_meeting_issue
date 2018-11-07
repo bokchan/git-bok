@@ -1,2 +1,2 @@
 #!/bin/bash
-sed -re 's/^ *?(.+?)\/(sociomantic.+)$/- \2 \1/g' $1 | sed -e 's/^Link \+URL.*$//g'
+sed -re 's/^ *?(.+?)\/(sociomantic.+)$/- \2 \1/g' $1 | sed -e 's/^Link \+URL.*$//g' | awk 'NF > 0 {blank=0} NF == 0 {blank++} blank < 2'

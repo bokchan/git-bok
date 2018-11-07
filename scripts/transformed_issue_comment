@@ -31,7 +31,7 @@ check_command_exists()
 
 # Auxiliary variables
 ISSUE_NUMBER=
-INPUT_FILE=input.txt
+INPUT_FILE=input.md
 MESSAGE=
 TRANSFORM=
 REGEX=
