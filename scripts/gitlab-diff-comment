@@ -1,0 +1,178 @@
+#!/bin/bash
+#
+# Create a diff the remote and local head, and wrap it in a collapsible comment
+#
+# usage:
+#       git_diff_patch_cmd | xclip -selection c # use xclip to preserve new
+#                                                   lines in the diff
+#       git_diff_patch_cmd > <some-file>
+#       git_diff_patch_cmd -c [PR number] [OPTIONS]
+#
+# [PR number] is the numeric id of the pull request on github.com
+# Note that 'lab' (https://zaquestion.github.io/lab/) and 'xclip' are required to 
+# use the commenting feature '-c'
+#   
+# 
+# The default origin is 'origin', but can also be defined with environment
+# variable 'GIT_DEFAULT_ORIGIN'.
+#
+# In addition the environment variable 'GITLAB_MEMBER_USERNAMES' can be used to
+# specify github usernames for people whom should be tagged in a comment.
+
+set -e
+
+# print the help
+usage()
+{
+    cat <<EOT
+Usage: $0 [OPTIONS]
+
+       git_diff_patch_cmd | <your-shell-copy-tool> (e.g pbcopy)
+       git_diff_patch_cmd > <some-file>
+       git_diff_patch_cmd -c [PR number]
+
+[PR number] is the numeric id of the pull request.
+Not that 'lab' and 'xclip' are required when using the -c option. 
+'lab' is available here: https://zaquestion.github.io/lab/
+
+Options:
+
+-c id  The numeric id of the MR on gitlab
+       pushes changes to remote and adds the diff to an existing
+       issue (requires 'lab' and 'xclip')
+-t     Text to use as header for the comment.
+       If the environment variable 'GITLAB_MEMBER_USERNAMES' is specified the
+       argument will be matched against the its value. If a match is found the
+       comment will read: 'Updated based on comments from @USERNAME'.
+       If the argument is 'master' or a semver version string the
+       header will be "Updated: rebased on $argument"
+-p     Push changes to remote
+-P     Force push changes to remote
+-h
+       show this help message and exit
+EOT
+}
+
+# check if a command exists and exit with error if it doesn't
+check_command_exists()
+{
+  if ! type "$1" &> /dev/null
+  then
+    echo "required cli tool '$1' doesn't exist"
+    exit 1
+  fi
+}
+
+COMMENT_HEADER=
+COMMENT_ISSUE=
+PUSH_REMOTE=0
+FORCE_PUSH=
+
+# array of github user-names. Read from the env var GITLAB_MEMBER_USERNAMES
+MY_GITLAB_MEMBER_USERNAMES=$GITLAB_MEMBER_USERNAMES
+
+# generate a header which tags user(s)
+comment_header()
+{
+  arg=$1
+  arg_arr=(${arg//,/ })
+  tagged_users=()
+  for a in ${arg_arr[*]}; do
+    for t in ${MY_GITLAB_MEMBER_USERNAMES[*]}; do
+      if [[ $t =~ $a ]]; then
+        tagged_users+=("@$t")
+      fi
+    done
+  done
+
+  if [[ "$arg" =~ master || "$arg" =~ ^v[0-9]+\.[x0-9]+\.[x0-9]+$ ]] ; then
+    COMMENT_HEADER="Rebased on $arg"
+  elif [ -z $tagged_users ]; then
+    COMMENT_HEADER="$arg"
+  else
+    tagged_users=${tagged_users[*]}
+    COMMENT_HEADER="Updated based on comments by ${tagged_users// /, }"
+  fi
+}
+
+# parse cmd args
+while getopts :c:t:Pph opt; do
+  case "$opt" in
+    c)
+       COMMENT_ISSUE="$OPTARG"
+       PUSH_REMOTE=1
+       ;;
+    t)
+       comment_header "$OPTARG"
+       ;;
+    p)
+       PUSH_REMOTE=1
+       ;;
+    P)
+       PUSH_REMOTE=1
+       FORCE_PUSH="-f"
+       ;;
+    h) # process option h
+      usage ; exit 0
+      ;;
+    *)
+      usage ; exit 1
+      ;;
+  esac
+done
+
+shift $((OPTIND -1))
+
+# get the branch
+BRANCH_NAME=`git branch | sed -n '/\* /s///p'`
+
+# set the origin for the remote url if the env var is specified
+GIT_ORIGIN=$GIT_DEFAULT_ORIGIN
+if [ -z "$GIT_ORIGIN" ]
+then
+    GIT_ORIGIN=fork
+fi
+
+# get the hash for the local and remote HEAD
+HEAD_HASH_LOCAL=`git log --pretty=format:'%h' -n 1 ${BRANCH_NAME}`
+HEAD_HASH_REMOTE=`git log --pretty=format:'%h' -n 1 $GIT_ORIGIN/${BRANCH_NAME}`
+
+# create the collapsible diff
+create_diff()
+{
+    cat << EOF
+${COMMENT_HEADER}
+
+Previous head was ${HEAD_HASH_REMOTE}, new **HEAD** at ${HEAD_HASH_LOCAL}.
+
+<details>
+<summary>Diff between heads are:</summary>
+
+\`\`\`diff
+
+`git diff -M --patch-with-stat ${HEAD_HASH_REMOTE} ${HEAD_HASH_LOCAL}`
+
+\`\`\`
+</details>
+EOF
+}
+
+if [ "$PUSH_REMOTE" = "1" ]
+then
+  git push $FORCE_PUSH "$GIT_ORIGIN" "$BRANCH_NAME"
+fi
+
+# use git-hub to add comment to issue/pr
+if [ -n "$COMMENT_ISSUE" ]
+then
+    check_command_exists xclip
+    check_command_exists lab
+
+    # copy the diff to the clipboard
+    create_diff | xclip -selection c
+    # invoke the 'lab' command to add a comment
+    # paste the diff directly into the editor
+    lab mr comment $COMMENT_ISSUE
+else
+    create_diff
+fi
