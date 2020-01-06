@@ -9,10 +9,10 @@
 #       git_diff_patch_cmd -c [PR number] [OPTIONS]
 #
 # [PR number] is the numeric id of the pull request on github.com
-# Note that 'lab' (https://zaquestion.github.io/lab/) and 'xclip' are required to 
+# Note that 'lab' (https://zaquestion.github.io/lab/) and 'xclip' are required to
 # use the commenting feature '-c'
-#   
-# 
+#
+#
 # The default origin is 'origin', but can also be defined with environment
 # variable 'GIT_DEFAULT_ORIGIN'.
 #
@@ -32,7 +32,7 @@ Usage: $0 [OPTIONS]
        git_diff_patch_cmd -c [PR number]
 
 [PR number] is the numeric id of the pull request.
-Not that 'lab' and 'xclip' are required when using the -c option. 
+Not that 'lab' and 'xclip' are required when using the -c option.
 'lab' is available here: https://zaquestion.github.io/lab/
 
 Options:
